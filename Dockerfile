@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Use official Python image as base
 FROM python:3.11-slim
 
@@ -15,3 +16,8 @@ EXPOSE 5000
 
 # Run application
 CMD ["python", "app.py"]
+=======
+FROM openjdk:17-jdk-slim
+COPY target/*.jar app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+>>>>>>> Add Dockerfile for OpenJDK 17
