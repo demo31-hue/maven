@@ -1,45 +1,63 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_IMAGE = "naveen04jan/my-python-app3"
-        DOCKER_TAG = "latest"
+    tools {
+        maven 'Maven'
+        jdk 'JDK21'
     }
 
     stages {
 
-        stage('Build Docker Image') {
+        stage('Checkout') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
+                git branch: 'main',
+                    url: 'https://github.com/Naveen04jan/ven.git',
+                    credentialsId: 'github-token'
             }
         }
 
-        stage('Login to DockerHub') {
+        stage('Build') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'USER',
-                    passwordVariable: 'PASS'
-                )]) {
-                    sh 'echo $PASS | docker login -u $USER --password-stdin'
-                }
+                sh 'mvn clean compile'
             }
         }
 
-        stage('Push Image') {
+        stage('Test') {
             steps {
-                sh 'docker push $DOCKER_IMAGE:$DOCKER_TAG'
+                sh 'mvn test'
             }
         }
 
-        stage('Deploy Container') {
+        stage('Package') {
             steps {
-                sh '''
-                docker stop myapp-container || true
-                docker rm myapp-container || true
-                docker run -d -p 5000:5000 --name myapp-container $DOCKER_IMAGE:$DOCKER_TAG
-                '''
+                sh 'mvn package'
             }
+        }
+
+        stage('Run Application') {
+            steps {
+                sh 'mvn exec:java -Dexec.mainClass="com.example.app.App"'
+            }
+        }
+    }
+
+    
+    post {
+
+        success {
+            emailext (
+                subject: "SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
+                body: "Build succeeded!\nCheck: ${BUILD_URL}",
+                to: "dishadayanand09@gmail.com"
+            )
+        }
+
+        failure {
+            emailext (
+                subject: "FAILED: ${JOB_NAME} #${BUILD_NUMBER}",
+                body: "Build failed!\nCheck: ${BUILD_URL}",
+                to: "dishadayanand09@gmail.com"
+            )
         }
     }
 }
